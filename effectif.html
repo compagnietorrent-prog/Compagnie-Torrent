@@ -269,7 +269,7 @@
   .page-head { text-align: center; padding: 72px 0 56px; }
   .page-head p { max-width: 620px; margin: 0 auto; color: var(--muted); font-size: 1.08rem; }
   @media (max-width: 1550px) { nav { gap: 6px 18px; font-size: .88rem; flex-wrap: wrap; justify-content: flex-end; } }
-  @media (max-width: 600px) { nav { gap: 4px 12px; font-size: .72rem; flex-wrap: wrap; justify-content: flex-end; } .brand { font-size: 0; gap: 0; } section { padding: 60px 0; } }
+  @media (max-width: 600px) { nav { gap: 4px 12px; font-size: .72rem; flex-wrap: wrap; justify-content: flex-end; } header .wrap, .brand { height: auto; min-height: 76px; padding-block: 6px; } .brand img { width: 64px; height: 64px; } .brand { font-size: 0; gap: 0; } section { padding: 60px 0; } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
@@ -354,6 +354,34 @@ document.querySelectorAll("img[data-imgur]").forEach(img => {
 });
 document.getElementById("favicon").href = imgurDirect("logo");
 document.documentElement.style.setProperty("--logo", `url("${imgurDirect("logo")}")`);
+
+/* Logo de la bande du haut : on retire les marges transparentes de l'image
+   pour que le dessin remplisse tout le cadre de 100 px (comme sur le site HVY). */
+(() => {
+  const src = new Image();
+  src.crossOrigin = "anonymous";
+  src.referrerPolicy = "no-referrer";
+  src.onload = () => {
+    try {
+      const w = src.naturalWidth, h = src.naturalHeight, c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(src, 0, 0);
+      const px = ctx.getImageData(0, 0, w, h).data;
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (px[(y * w + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+      if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === h - 1)) return; // rien à rogner
+      const cw = x1 - x0 + 1, ch = y1 - y0 + 1, out = document.createElement("canvas");
+      out.width = cw; out.height = ch;
+      out.getContext("2d").drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
+      const url = out.toDataURL("image/png");
+      document.querySelectorAll(".brand img").forEach(img => { img.src = url; });
+    } catch (e) { /* lecture impossible : on garde l'image d'origine */ }
+  };
+  src.src = imgurDirect("logo");
+})();
 
 /* ====================================================================
    CHARTE GRAPHIQUE TIRÉE DU LOGO
